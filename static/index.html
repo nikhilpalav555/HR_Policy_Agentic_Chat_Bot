@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAG Document Q&A</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f7f8fb; margin: 0; padding: 0; }
+    .container { max-width: 880px; margin: 32px auto; padding: 24px; background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+    h1 { margin-top: 0; }
+    .section { margin-bottom: 24px; }
+    .section label { display: block; margin-bottom: 8px; font-weight: 600; }
+    input[type="file"], textarea, input[type="text"] { width: 100%; padding: 12px; border: 1px solid #d7dde3; border-radius: 8px; box-sizing: border-box; }
+    button { background: #2563eb; color: #fff; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 15px; }
+    button:hover { background: #1d4ed8; }
+    .result, .status { white-space: pre-wrap; background: #f5f7fb; border: 1px solid #dbe5f6; padding: 16px; border-radius: 10px; margin-top: 12px; }
+    .columns { display: grid; gap: 20px; grid-template-columns: 1fr; }
+    @media(min-width: 760px) { .columns { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>RAG Document Q&A</h1>
+    <div class="section">
+      <label for="files">Upload documents (PDF, TXT, CSV):</label>
+      <input type="file" id="files" multiple />
+      <button id="uploadButton">Upload & Index</button>
+      <div id="uploadStatus" class="status"></div>
+    </div>
+
+    <div class="section">
+      <label for="question">Ask a question:</label>
+      <textarea id="question" rows="4" placeholder="Type your question about the uploaded documents..."></textarea>
+      <button id="askButton">Ask LLM</button>
+      <div id="answer" class="result"></div>
+    </div>
+  </div>
+
+  <script>
+    const uploadButton = document.getElementById('uploadButton');
+    const askButton = document.getElementById('askButton');
+    const uploadStatus = document.getElementById('uploadStatus');
+    const answerElement = document.getElementById('answer');
+
+    uploadButton.addEventListener('click', async () => {
+      const filesInput = document.getElementById('files');
+      const files = filesInput.files;
+      if (!files.length) {
+        uploadStatus.textContent = 'Please select at least one file.';
+        return;
+      }
+
+      uploadStatus.textContent = 'Uploading files...';
+      const formData = new FormData();
+      for (const file of files) {
+        formData.append('files', file);
+      }
+
+      try {
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+          uploadStatus.textContent = 'Upload failed: ' + (result.detail || JSON.stringify(result));
+          return;
+        }
+
+        uploadStatus.textContent = 'Upload successful. Indexed chunks: ' + result.indexed_chunks;
+      } catch (error) {
+        uploadStatus.textContent = 'Upload error: ' + error.message;
+      }
+    });
+
+    askButton.addEventListener('click', async () => {
+      const question = document.getElementById('question').value.trim();
+      if (!question) {
+        answerElement.textContent = 'Please type a question first.';
+        return;
+      }
+
+      answerElement.textContent = 'Getting answer...';
+      try {
+        const response = await fetch('/api/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question }),
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+          answerElement.textContent = 'Error: ' + (result.detail || JSON.stringify(result));
+          return;
+        }
+
+        answerElement.textContent = result.answer;
+      } catch (error) {
+        answerElement.textContent = 'Request error: ' + error.message;
+      }
+    });
+  </script>
+</body>
+</html>
