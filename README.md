@@ -109,6 +109,24 @@ The UI is served from `src/static/index.html` and provides:
 - The first request may take longer if the Faiss index is built or loaded for the first time.
 - The current LLM configuration uses `gemma3` via `langchain-ollama`.
 - If the app fails due to model or reasoning mode restrictions, edit `src/qa_service.py` to adjust Ollama parameters.
+- This version also includes tool-enabled reasoning: the LLM can call a document search tool, a calculator tool, and a current date tool.
+
+## Tool-based reasoning support
+
+The project now supports tools in the RAG pipeline. The current tool names are:
+
+- `search_documents` — searches the indexed documents and returns relevant excerpts
+- `calculator` — evaluates math expressions
+- `check_current_date` — returns today’s date
+
+If you add more tools to a normal RAG pipeline, use clear, descriptive names such as:
+
+- `document_search` or `search_documents`
+- `retrieve_documents` or `document_retrieval`
+- `qa_search_tool` or `rag_search_tool`
+- `extract_summary` or `summarize_documents`
+
+Good naming makes it easier for the LLM to choose the correct tool and for other developers to understand the pipeline.
 
 ## Troubleshooting
 
